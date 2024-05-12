@@ -77,7 +77,7 @@ class RedTeamingOrchestrator(Orchestrator):
         """Returns True if the conversation is complete, False otherwise."""
         pass
 
-    def apply_attack_strategy_until_completion(self, max_turns: int = 5):
+    def apply_attack_strategy_until_completion(self, max_turns: int = 5, retries: int = 1):
         """
         Applies the attack strategy until the conversation is complete or the maximum number of turns is reached.
         """
@@ -87,7 +87,7 @@ class RedTeamingOrchestrator(Orchestrator):
         overall_response = None
         while turn <= max_turns:
             logger.info(f"Applying the attack strategy for turn {turn}.")
-            response = self.send_prompt(completion_state=completion_state)
+            response = self.send_prompt(completion_state=completion_state, retries=retries)
             # If the conversation is complete without a target response in the current iteration
             # then the overall response is the last iteration's response.
             overall_response = response if response else overall_response
@@ -107,7 +107,7 @@ class RedTeamingOrchestrator(Orchestrator):
 
         return overall_response
 
-    def send_prompt(self, *, prompt: Optional[str] = None, completion_state: CompletionState = None):
+    def send_prompt(self, *, prompt: Optional[str] = None, completion_state: CompletionState = None, retries: int = 1):
         """
         Either sends a user-provided prompt or generates a prompt to send to the prompt target.
 
@@ -151,22 +151,28 @@ class RedTeamingOrchestrator(Orchestrator):
             prompt_data_type="text",
         )
 
-        response_text = (
-            self._prompt_normalizer.send_prompt(
-                normalizer_request=NormalizerRequest([target_prompt_obj]),
-                target=self._prompt_target,
-                conversation_id=self._prompt_target_conversation_id,
-                labels=self._global_memory_labels,
-                orchestrator_identifier=self.get_identifier(),
+        retries_count = 1
+        while retries_count <= retries:
+            logger.info(f"Try number {retries_count} for this turn.")
+            response_text = (
+                self._prompt_normalizer.send_prompt(
+                    normalizer_request=NormalizerRequest([target_prompt_obj]),
+                    target=self._prompt_target,
+                    conversation_id=self._prompt_target_conversation_id,
+                    labels=self._global_memory_labels,
+                    orchestrator_identifier=self.get_identifier(),
+                )
+                .request_pieces[0]
+                .converted_value
             )
-            .request_pieces[0]
-            .converted_value
-        )
 
-        if completion_state:
-            target_messages.append(ChatMessage(role="user", content=response_text))
-            target_messages.append(ChatMessage(role="assistant", content=response_text))
-            completion_state.is_complete = self.is_conversation_complete(target_messages, red_teaming_chat_role="user")
+            if completion_state:
+                target_messages.append(ChatMessage(role="user", content=response_text))
+                target_messages.append(ChatMessage(role="assistant", content=response_text))
+                completion_state.is_complete = self.is_conversation_complete(target_messages, red_teaming_chat_role="user")
+                if completion_state.is_complete:
+                    break
+            retries_count += 1
 
         return response_text
 
