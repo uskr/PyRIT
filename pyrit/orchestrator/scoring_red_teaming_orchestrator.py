@@ -81,8 +81,12 @@ class ScoringRedTeamingOrchestrator(RedTeamingOrchestrator):
 
         # TODO this function needs to be updated to be async
         pool = concurrent.futures.ThreadPoolExecutor()
-        score: Score = pool.submit(asyncio.run, self._scorer.score_text_async(text=messages[-1].content)).result()[0]
-
-        if score.score_type != "true_false":
-            raise ValueError(f"The scorer must return a true_false score. The score type is {score.score_type}.")
-        return score.get_value()
+        scores: list[Score] = pool.submit(asyncio.run, self._scorer.score_text_async(text=messages[-1].content)).result()
+        # loop through the scores and return True if any of them are True
+        for score in scores:
+            if score.score_type != "true_false":
+                raise ValueError(f"The scorer must return a true_false score. The score type is {score.score_type}.")
+            if score.get_value():
+                return True
+        
+        return False
