@@ -3,8 +3,8 @@ description: |
   A general strategy for an adversarial chat bot that will reply back with a subtle variation of a jailbreak prompt
 harm_category: NA
 author: Adriano Maia <adriano@drstrange.wtf>
-group: AI Red Team
-source: AI Red Team
+group: BP
+source: https://drstrange.wtf/jailbreaking-llama3-with-pyrit-655962767b23
 should_be_blocked: false
 parameters:
   - conversation_objective
