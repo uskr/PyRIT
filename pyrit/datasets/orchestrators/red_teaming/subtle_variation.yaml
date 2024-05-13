@@ -2,7 +2,7 @@ name: red_team_chatbot
 description: |
   A general strategy for an adversarial chat bot that will reply back with a subtle variation of a jailbreak prompt
 harm_category: NA
-author: AI Red Team
+author: Adriano Maia <adriano@drstrange.wtf>
 group: AI Red Team
 source: AI Red Team
 should_be_blocked: false
